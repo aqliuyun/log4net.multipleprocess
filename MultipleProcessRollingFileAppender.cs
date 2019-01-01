@@ -254,15 +254,27 @@ namespace log4net.Appender
             {
                 try
                 {
+                    try
+                    {
+                        LockingModel.AcquireLock();
+                        using (SecurityContext.Impersonate(this))
+                        {
+                            if (System.IO.File.Exists(this.File))
+                            {
+                                ((CountingQuietTextWriter)QuietWriter).Count = (new FileInfo(this.File)).Length;
+                            }
+                        }
+                    }
+                    finally {
+                        LockingModel.ReleaseLock();
+                    }
                     if (DateTime.Now - this.m_lastActiveTime >= TimeSpan.FromSeconds(5) && !m_isClosed)
                     {
                         if (m_mutexForRolling.WaitOne(10))
                         {
                             try
                             {
-                                LogLog.Debug(declaringType, "log file is on idle");
-
-
+                                LogLog.Debug(declaringType, "log file is on idle");                                
                                 this.CloseWriter();
                                 m_isClosed = true;
 
@@ -651,7 +663,6 @@ namespace log4net.Appender
                 // if rolling should be locked, acquire the lock
                 if (m_mutexForRolling != null)
                 {
-                    LogLog.Debug(declaringType, "wait for a rolling mutex");
                     while (true)
                     {
                         if (!m_mutexForRolling.WaitOne(10))
@@ -671,7 +682,6 @@ namespace log4net.Appender
                         }
                         break;
                     }
-                    LogLog.Debug(declaringType, "rolling mutex lock");
                 }
 #endif
 
@@ -727,7 +737,6 @@ namespace log4net.Appender
                 // if rolling should be locked, release the lock
                 if (m_mutexForRolling != null)
                 {
-                    LogLog.Debug(declaringType, "rolling mutex release");
                     m_mutexForRolling.ReleaseMutex();
                 }
             }
