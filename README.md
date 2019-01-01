@@ -1,8 +1,10 @@
 # log4net.multiprocess
 add multiple process rolling file appender support
 
-log4net config:
+rolling size should set staticlogfilename to false
 
+log4net config:
+<code>
   <log4net>
     <root>
       <level value="ERROR"/>
@@ -22,3 +24,4 @@ log4net config:
       </layout>
     </appender>
   </log4net>
+</code>
