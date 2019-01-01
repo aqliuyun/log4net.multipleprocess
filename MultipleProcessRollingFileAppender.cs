@@ -677,12 +677,24 @@ namespace log4net.Appender
 
                 var accessor = m_sharedMemory.CreateViewAccessor();
                 var backup = accessor.ReadInt32(0);
-                LogLog.Debug(declaringType, $"sync process back up size: {backup}");
-                if (backup > m_curSizeRollBackups)
+                accessor.Read<DateTime>(4, out DateTime lastrolldate);                
+                if (m_rollSize && backup > m_curSizeRollBackups)
                 {
+                    LogLog.Debug(declaringType, $"sync process back up size: {backup}");
                     this.CloseFile();
                     m_isClosed = true;
                     m_curSizeRollBackups = backup;
+                    this.SafeOpenFile(m_baseFileName, true);
+                }
+                else if (m_rollDate && lastrolldate > m_now)
+                {
+                    LogLog.Debug(declaringType, $"sync process back up time: {lastrolldate}");
+                    this.CloseFile();
+                    m_isClosed = true;
+                    m_curSizeRollBackups = 0;
+                    m_now = lastrolldate;
+                    m_scheduledFilename = CombinePath(File, m_now.ToString(m_datePattern, System.Globalization.DateTimeFormatInfo.InvariantInfo));
+                    m_nextCheck = NextCheckDate(m_now, m_rollPoint);
                     this.SafeOpenFile(m_baseFileName, true);
                 }
                 else
@@ -1217,7 +1229,7 @@ namespace log4net.Appender
             }
 
 #if !NETCF
-            string memoryMapName = "map_"+this.m_baseFileName
+            string memoryMapName = "map_" + this.m_baseFileName
                            .Replace("\\", "_")
                            .Replace(":", "_")
                            .Replace("/", "_");
@@ -1313,7 +1325,10 @@ namespace log4net.Appender
 
             //new scheduled name
             m_scheduledFilename = CombinePath(File, m_now.ToString(m_datePattern, System.Globalization.DateTimeFormatInfo.InvariantInfo));
-
+            var accessor = m_sharedMemory.CreateViewAccessor();
+            DateTime time = m_now;
+            accessor.Write(0, 0);
+            accessor.Write<DateTime>(4, ref time);
             if (fileIsOpen)
             {
                 // This will also close the file. This is OK since multiple close operations are safe.
@@ -1890,9 +1905,7 @@ namespace log4net.Appender
             public override Stream AcquireLock()
             {
                 if (m_mutex != null)
-                {
-
-                    LogLog.Debug(declaringType, $"{this.CurrentAppender.File} AcquireLock");
+                {                    
                     // TODO: add timeout?
                     m_mutex.WaitOne();
 
@@ -1932,7 +1945,6 @@ namespace log4net.Appender
                     {
                         m_recursiveWatch--;
                         m_mutex.ReleaseMutex();
-                        LogLog.Debug(declaringType, $"{this.CurrentAppender.File} relase mutex");
                     }
                 }
                 else
