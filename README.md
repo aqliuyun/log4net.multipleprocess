@@ -4,7 +4,7 @@ add multiple process rolling file appender support
 rolling size should set staticlogfilename to false
 
 log4net config:
-<code>
+```xml
   <log4net>
     <root>
       <level value="ERROR"/>
@@ -13,7 +13,7 @@ log4net config:
     <appender name="RollingFileAppender" type="log4net.Appender.MultipleProcessRollingFileAppender">
       <file value="Log\system.log"/>
       <lockingModel type="log4net.Appender.MultipleProcessRollingFileAppender+InterProcessLock"/>
-      <datePattern value="(yyyyMMdd)"/>
+      <datePattern value="yyyyMMdd"/>
       <appendToFile value="true"/>
       <RollingStyle value="Size"/>
       <staticLogFileName value="false"/>
@@ -24,4 +24,4 @@ log4net config:
       </layout>
     </appender>
   </log4net>
-</code>
+`
